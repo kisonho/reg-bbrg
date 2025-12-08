@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "hifi-bbrg"
+version = "1.0"
+description = "Regularized Brownian Bridges (v1.0)"
+authors = []
+packages = [
+    { include = "hifi_bbrg" },
+]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+torch = "^2.3"
+torchmanager = "^1.3"
+torchmanager-diffusion = "^1.1"
+sde-bbdm = "^1.1"
+
+[tool.poetry.optional-dependencies]
+imageio = "^2.34"
+itk = "^5.3"
+monai = "^1.3"
+nibabel = "^5.2"
+tensorboard = "^2.17"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
