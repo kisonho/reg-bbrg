@@ -70,7 +70,6 @@ class AdversarialDiffusionManager(Manager[M]):
         # initialize super manager
         super().__init__(model, optimizer, loss_fn, metrics)
 
-
     def backward_adversarial(self, loss: torch.Tensor) -> None:
         """Backward pass for adversarial training"""
         assert self.adversarial_optimizer is not None, "adversarial optimizer is not compiled."

@@ -1,9 +1,9 @@
 from diffusion.networks import UNet, build as build_unet
+from sde_bbdm.networks import OpenAIUNet
 from typing import overload
 
 from .protocols import DiffusionModule, PixelDiscriminator
 from .models import UNetType
-from .openai import OpenAIUNet
 
 
 @overload
