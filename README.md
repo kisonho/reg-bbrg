@@ -1,13 +1,13 @@
-# Deterministic Medical Image Translation via High-fidelity Brownian Bridges (HiFi-BBrg)
-Official implementation for HiFi-BBrg.
+# Regularized Brownian Bridges for Deterministic Medical Image Translation
+Official implementation for Reg-BBrg.
 
 ## Pre-requeist and Installation
 
 ### Required dependencies
 * python >= 3.10
 * pytorch >= 2.3
-* torchmanager >= 1.3
-* torchmanager-diffusion >= 1.1
+* torchmanager >= 1.4
+* torchmanager-diffusion >= 1.2
 
 ### Optional dependencies for example code
 * imageio >= 2.34
