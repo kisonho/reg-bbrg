@@ -30,7 +30,7 @@ def compile(model: RegBBrgModule[G1, G2, D], /, lr: float = 2e-5, adv_lr: float 
     - Returns: The compiled manager in `c2b2.managers.AdversarialDiffusionManager`.
     """
     # load generator optimizer and loss
-    trainable_params = list(model.parameters())
+    trainable_params = list(model.generator_parameters())
     optimizer = torch.optim.Adam(trainable_params, lr=lr)
     if use_ema:
         assert EMAOptimizer is not None, _raise(NotImplementedError("EMA optimizer is not implemented, torchmanager-diffusion v1.2 is required."))

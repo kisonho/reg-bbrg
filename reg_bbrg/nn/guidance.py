@@ -75,7 +75,7 @@ class RegularizedBrownianBridgeModule(ConditionalBrownianBridgeModule[Module, No
         # zip data
         return RegBBrgOutput(target=y, rec=xT_tilde, d_false=d_false, d_true=d_true)
 
-    def parameters(self, recurse: bool = True) -> Iterator[Parameter]:
+    def generator_parameters(self, recurse: bool = True) -> Iterator[Parameter]:
         params = list(self.model.parameters(recurse=recurse))
         if self.generator is not None:
             params += list(self.generator.parameters(recurse=recurse))
