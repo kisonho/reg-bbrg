@@ -4,7 +4,7 @@ version = "1.0"
 description = "Regularized Brownian Bridges (v1.0)"
 authors = []
 packages = [
-    { include = "hifi_bbrg" },
+    { include = "reg_bbrg" },
 ]
 readme = "README.md"
 
