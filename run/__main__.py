@@ -9,6 +9,7 @@ from .engine import eval, train
 
 class Configs(TrainingConfigs):
     dataset: data.SupportedMedicalDatasets
+    disable_ema: bool
     disable_random_sampling: bool
     input_modality: int
     model_type: networks.UNetType
@@ -26,8 +27,8 @@ class Configs(TrainingConfigs):
         parser.add_argument("-input", "--input_modality", type=int, default=0, help="The input modality to use.")
         parser.add_argument("-target", "--target_modality", type=int, default=1, help="The target modality to use.")
         parser.add_argument("--train_split", type=int, default=None, help="Dataset split count (validation count for BraTS 2018; omit for BraTS 2021's Train/Val/Test folders).")
-        parser.add_argument("--disable_random_sampling", action="store_true", default=False, help="A flag to isable random sampling and use the full dataset.")
-
+        parser.add_argument("--disable_ema", action="store_true", default=False, help="A flag to disable EMA during training.")
+        parser.add_argument("--disable_random_sampling", action="store_true", default=False, help="A flag to disable random sampling and use the full dataset.")
         parser.add_argument_group("Model arguments")
         parser.add_argument("-model", "--model_type", type=networks.UNetType, default=networks.UNetType.A_BRIDGE, choices=list(networks.UNetType), help="The model type to use.")
         parser.add_argument("--with_gen_time_emb", action="store_true", default=False, help="Whether to use generator time embedding.")

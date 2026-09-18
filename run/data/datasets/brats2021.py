@@ -1,7 +1,11 @@
 """BraTS 2021 subject folders, using the BraTS 2018 modality order."""
 
-from monai.data import CacheDataset, Dataset
-from monai.transforms import Compose, LoadImaged, Orientationd, RandCropByPosNegLabeld, ToTensord
+from monai.data.dataset import CacheDataset, Dataset
+from monai.transforms.compose import Compose
+from monai.transforms.io.dictionary import LoadImaged
+from monai.transforms.spatial.dictionary import Orientationd
+from monai.transforms.croppad.dictionary import RandCropByPosNegLabeld
+from monai.transforms.utility.dictionary import ToTensord
 from pathlib import Path
 
 Subject = dict[str, list[str] | str]
@@ -33,7 +37,7 @@ def discover_splits(root_dir: str) -> tuple[list[Subject], list[Subject], list[S
     splits = []
     seen: dict[str, str] = {}
     for name in ("Train", "Val", "Test"):
-        records = discover_subjects(str(Path(root_dir) / name))
+        records = discover_subjects(str(Path(root_dir).expanduser() / name))
         for record in records:
             subject = Path(str(record["label"])).parent.name
             if subject in seen:

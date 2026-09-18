@@ -1,0 +1,19 @@
+#!/bin/bash
+clear
+
+export CUDA_VISIBLE_DEVICES=4,5,6,7
+
+python -m run \
+    brats2021 \
+    "~/Documents/Datasets/BraTS 2021/" \
+    "~/Documents/Models/reg-bbrg/brats_2021.pth" \
+    --input_modality 1 \
+    --target_modality 3 \
+    -b 32 \
+    -e 200 \
+    -exp brats2021 \
+    --use_multi_gpus \
+    --show_verbose \
+    --replace_experiment \
+
+unset CUDA_VISIBLE_DEVICES
