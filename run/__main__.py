@@ -18,20 +18,18 @@ class Configs(TrainingConfigs):
 
     def format_arguments(self) -> None:
         super().format_arguments()
-        self.dataset = data.SupportedMedicalDatasets(self.dataset)
-        self.model_type = networks.UNetType[self.model_type.upper()] if isinstance(self.model_type, str) else self.model_type
         assert self.train_split is None or self.train_split >= 0, "The train_split must be a non-negative value if given."
 
     @staticmethod
     def get_arguments(parser: argparse.ArgumentParser = argparse.ArgumentParser()) -> argparse.ArgumentParser:
-        parser.add_argument("dataset", type=str, help="The dataset to train.")
+        parser.add_argument("dataset", type=data.SupportedMedicalDatasets, choices=list(data.SupportedMedicalDatasets), help="The dataset to train.")
         parser.add_argument("-input", "--input_modality", type=int, default=0, help="The input modality to use.")
         parser.add_argument("-target", "--target_modality", type=int, default=1, help="The target modality to use.")
-        parser.add_argument("--train_split", type=int, default=None, help="The training script of the dataset")
+        parser.add_argument("--train_split", type=int, default=None, help="Dataset split count (validation count for BraTS 2018; omit for BraTS 2021's Train/Val/Test folders).")
         parser.add_argument("--disable_random_sampling", action="store_true", default=False, help="A flag to isable random sampling and use the full dataset.")
 
         parser.add_argument_group("Model arguments")
-        parser.add_argument("-model", "--model_type", type=str, default="a_bridge", help="The model type to use.")
+        parser.add_argument("-model", "--model_type", type=networks.UNetType, default=networks.UNetType.A_BRIDGE, choices=list(networks.UNetType), help="The model type to use.")
         parser.add_argument("--with_gen_time_emb", action="store_true", default=False, help="Whether to use generator time embedding.")
         parser = cast(argparse.ArgumentParser, TrainingConfigs.get_arguments(parser))
         return parser
@@ -54,7 +52,7 @@ if __name__ == "__main__":
     model = networks.build(input_channels, output_channels, time_steps=training_cfgs.time_steps, model_type=training_cfgs.model_type, with_gen_time_emb=training_cfgs.with_gen_time_emb) if training_cfgs.ckpt_path is None else None
 
     # train
-    train(training_cfgs, training_dataset, model)
+    train(training_cfgs, training_dataset, model, validation_dataset=validation_dataset if training_cfgs.dataset == data.SupportedMedicalDatasets.BRATS2021 else None)
 
     # evaluate
     result = eval(testing_cfgs, testing_dataset)

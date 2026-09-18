@@ -34,6 +34,51 @@ Use the main `example` package to run datasets in our paper:
 python -m example iseg <data_dir> <output_model_path>
 ```
 
+### BraTS 2021
+
+Use `brats2021` with a dataset root containing your `Train`, `Val`, and `Test` folders:
+
+```text
+BraTS2021/
+  Train/
+    BraTS2021_01165/
+      BraTS2021_01165_flair.nii
+      BraTS2021_01165_t1.nii
+      BraTS2021_01165_t1ce.nii
+      BraTS2021_01165_t2.nii
+      BraTS2021_01165_seg.nii
+    BraTS2021_.../
+  Val/
+    BraTS2021_.../
+  Test/
+    BraTS2021_.../
+```
+
+Both `.nii` and `.nii.gz` are supported. Every subject must have all four
+modalities and a segmentation map; duplicate compressed/uncompressed copies
+are rejected. Channels follow BraTS 2018: FLAIR=0, T1=1, T1CE=2, T2=3.
+
+```bash
+python -m example brats2021 <data_dir> <output_model_path> --input_modality 1 --target_modality 3 -b 4
+```
+
+Pass the parent of `Train`, `Val`, and `Test` as `<data_dir>`. The loader uses
+these existing assignments directly and sorts subject IDs only within each
+folder. It does not repartition, exclude, or move subjects, and it imposes no
+fixed split counts. All three folders must contain complete subjects; a
+subject ID appearing in more than one split is rejected. Nonconsecutive IDs
+are supported. Omit `--train_split` for BraTS 2021; that argument remains
+available for the other datasets.
+
+Preprocessing follows the existing BraTS 2018 pipeline: RAS orientation,
+240x240 in-plane size, segmentation-guided random slabs, and the existing
+shared-modality min-max normalization in `MedicalTranslationDataset`.
+`-b` controls the slab depth with random sampling enabled.
+`--disable_random_sampling` enumerates the full 155 slices per subject;
+testing always uses this full-depth setting. Standard 240x240x155 volumes
+after orientation are expected. Validation is passed to training and uses
+the same sampling policy as training. BraTS 2018 remains available as `brats2018`.
+
 ### Batch size and epochs
 Use `-b/--batch_size` and `-e/--epochs` to assign the number of batch size and epochs:
 

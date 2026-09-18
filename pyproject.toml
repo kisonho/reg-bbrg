@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "hifi-bbrg"
+name = "reg-bbrg"
 version = "1.0"
 description = "Regularized Brownian Bridges (v1.0)"
 authors = []

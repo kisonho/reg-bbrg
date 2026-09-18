@@ -2,7 +2,7 @@ import itk
 from torchmanager_core import devices, os, torch
 
 from reg_bbrg.data import ResizeMode, MedicalTranslationDataset
-from .datasets import BraTSModality, ImageType, ISeg, ISegModality, ISegTransformOptions, SupportedMedicalDatasets, load_brats, load_iseg_transforms, load_ixi, load_prostate
+from .datasets import BraTSModality, ImageType, ISeg, ISegModality, ISegTransformOptions, SupportedMedicalDatasets, load_brats, load_brats2021, load_iseg_transforms, load_ixi, load_prostate
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
@@ -28,7 +28,19 @@ def load_medical(dataset: SupportedMedicalDatasets, root_dir: str, /, batch_size
 
     # check supported datasets
     match dataset:
-        case SupportedMedicalDatasets.BRATS:
+        case SupportedMedicalDatasets.BRATS2021:
+            if train_split is not None:
+                raise ValueError("BraTS 2021 reads the existing Train/Val/Test folders; omit --train_split.")
+            img_size = (240, 240, batch_size if random_sampling else 155)
+            b = 1 if random_sampling else batch_size
+            input_modality = BraTSModality(input_modality).value
+            target_modality = BraTSModality(target_modality).value
+            training_dataset, validation_dataset, testing_dataset = load_brats2021(root_dir, img_size, num_workers=num_workers)
+            training_dataset = MedicalTranslationDataset(training_dataset, b, img_size, input_modality=input_modality, target_modality=target_modality, device=device, shuffle=True, num_workers=num_workers, use_slices=not random_sampling)
+            validation_dataset = MedicalTranslationDataset(validation_dataset, b, img_size, input_modality=input_modality, target_modality=target_modality, device=device, shuffle=True, num_workers=num_workers, use_slices=not random_sampling)
+            testing_dataset = MedicalTranslationDataset(testing_dataset, batch_size, (240, 240, 155), input_modality=input_modality, target_modality=target_modality, device=device, shuffle=False, num_workers=num_workers, use_slices=True)
+            input_channels = output_channels = 1
+        case SupportedMedicalDatasets.BRATS2018:
             # initialize dataset directories
             training_image_dir = os.path.join(root_dir, "Images.Training")
             training_label_dir = os.path.join(root_dir, "Labels.Training")
