@@ -2,6 +2,7 @@ import itk
 from torchmanager_core import devices, os, torch
 
 from reg_bbrg.data import ResizeMode, MedicalTranslationDataset
+from .brats2021 import BraTS2021TranslationDataset
 from .datasets import BraTSModality, ImageType, ISeg, ISegModality, ISegTransformOptions, SupportedMedicalDatasets, load_brats, load_brats2021, load_iseg_transforms, load_ixi, load_prostate
 
 torch.multiprocessing.set_sharing_strategy('file_system')
@@ -36,9 +37,9 @@ def load_medical(dataset: SupportedMedicalDatasets, root_dir: str, /, batch_size
             input_modality = BraTSModality(input_modality).value
             target_modality = BraTSModality(target_modality).value
             training_dataset, validation_dataset, testing_dataset = load_brats2021(root_dir, img_size, num_workers=num_workers)
-            training_dataset = MedicalTranslationDataset(training_dataset, b, img_size, input_modality=input_modality, target_modality=target_modality, device=device, shuffle=True, num_workers=num_workers, use_slices=not random_sampling)
-            validation_dataset = MedicalTranslationDataset(validation_dataset, b, img_size, input_modality=input_modality, target_modality=target_modality, device=device, shuffle=True, num_workers=num_workers, use_slices=not random_sampling)
-            testing_dataset = MedicalTranslationDataset(testing_dataset, batch_size, (240, 240, 155), input_modality=input_modality, target_modality=target_modality, device=device, shuffle=False, num_workers=num_workers, use_slices=True)
+            training_dataset = BraTS2021TranslationDataset(training_dataset, b, img_size, input_modality=input_modality, target_modality=target_modality, device=device, shuffle=True, num_workers=num_workers, use_slices=not random_sampling)
+            validation_dataset = BraTS2021TranslationDataset(validation_dataset, b, img_size, input_modality=input_modality, target_modality=target_modality, device=device, shuffle=True, num_workers=num_workers, use_slices=not random_sampling)
+            testing_dataset = BraTS2021TranslationDataset(testing_dataset, batch_size, (240, 240, 155), input_modality=input_modality, target_modality=target_modality, device=device, shuffle=False, num_workers=num_workers, use_slices=True)
             input_channels = output_channels = 1
         case SupportedMedicalDatasets.BRATS2018:
             # initialize dataset directories

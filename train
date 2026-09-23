@@ -9,7 +9,7 @@ python -m run \
     "~/Documents/Models/reg-bbrg/brats_2021.pth" \
     --input_modality 1 \
     --target_modality 3 \
-    -b 32 \
+    -b 24 \
     -e 200 \
     -exp brats2021 \
     --use_multi_gpus \

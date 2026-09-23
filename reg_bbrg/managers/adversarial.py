@@ -1,10 +1,11 @@
 from diffusion import DiffusionData, Manager
+from torch.amp.autocast_mode import autocast
 from torch.nn.utils import clip_grad
 from torch.optim.optimizer import Optimizer
 from torchmanager.losses import Loss, MultiLosses, ParallelLoss
 from torchmanager.metrics import Metric
-from torchmanager_core import devices, torch
-from torchmanager_core.typing import Callable, TypeVar, cast, overload
+from torchmanager_core import devices, torch, _raise
+from torchmanager_core.typing import Any, Callable, TypeVar, cast, overload
 
 from .protocols import RegBBrgModule, RegBBrgOutput, PredictionContext
 
@@ -59,9 +60,7 @@ class AdversarialDiffusionManager(Manager[M]):
     def __init__(self, model: M, optimizer: Optimizer | None = None, loss_fn: Loss | dict[str, Loss] | None = None, metrics: dict[str, Metric] = {}, *, adversarial_optimizer: Optimizer | None = None, adversarial_loss_fn: Loss | dict[str, Loss] | None = None) -> None:
         # initialize adversarial loss
         if isinstance(adversarial_loss_fn, dict):
-            loss_fn_mapping: dict[str, Loss] = {f"{name}_loss": fn for name, fn in adversarial_loss_fn.items()}
-            metrics.update(loss_fn_mapping)
-            adversarial_loss_fn = MultiLosses([l for l in loss_fn_mapping.values()])
+            adversarial_loss_fn = MultiLosses(list(adversarial_loss_fn.values()))
 
         # initialize discriminator
         self.adversarial_optimizer = adversarial_optimizer
@@ -82,7 +81,7 @@ class AdversarialDiffusionManager(Manager[M]):
             self.adversarial_loss_fn, use_multi_gpus = devices.data_parallel(self.adversarial_loss_fn, target_devices, parallel_type=ParallelLoss)
         return use_multi_gpus and super().data_parallel(target_devices)
 
-    def forward(self, input: DiffusionData, target: torch.Tensor | None = None) -> tuple[RegBBrgOutput | torch.Tensor, torch.Tensor | None]:
+    def forward(self, input: DiffusionData[torch.Tensor], target: torch.Tensor | None = None) -> tuple[RegBBrgOutput | torch.Tensor, torch.Tensor | None]:
         # forward model
         y = cast(RegBBrgOutput, self.model(input))
         target_false = torch.ones_like(cast(torch.Tensor, y["d_false"]))
@@ -95,7 +94,7 @@ class AdversarialDiffusionManager(Manager[M]):
         loss = self.compiled_losses(y, target_dict) if self.loss_fn is not None else None
         return y, loss
 
-    def forward_discriminator(self, input: DiffusionData, _: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
+    def forward_discriminator(self, input: DiffusionData[torch.Tensor], _: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
         """Forward pass for discriminator"""
         # get true and false data
         y = cast(RegBBrgOutput, self.model(input, input.condition))
@@ -121,6 +120,7 @@ class AdversarialDiffusionManager(Manager[M]):
     def test_step(self, x_test: torch.Tensor, y_test: torch.Tensor, *, forward_diffusion: bool = True) -> dict[str, float]:
         # forward diffusion
         if forward_diffusion:
+            x_test = x_test.to(y_test.device)
             t = torch.full((x_test.shape[0],), self.time_steps, device=x_test.device)
             xt, objective = self.forward_diffusion(y_test, x_test, t)
             forward_diffusion = False
@@ -140,14 +140,15 @@ class AdversarialDiffusionManager(Manager[M]):
         ...
 
     @overload
-    def train_step(self, x_train: DiffusionData, y_train: torch.Tensor, *, forward_diffusion: bool = False) -> dict[str, float]:
+    def train_step(self, x_train: DiffusionData[torch.Tensor], y_train: torch.Tensor, *, forward_diffusion: bool = False) -> dict[str, float]:
         ...
 
-    def train_step(self, x_train: torch.Tensor | DiffusionData, y_train: torch.Tensor, *, forward_diffusion: bool = True) -> dict[str, float]:
+    def train_step(self, x_train: torch.Tensor | DiffusionData[torch.Tensor], y_train: torch.Tensor, *, forward_diffusion: bool = True) -> dict[str, float]:
         # forward diffusion
         if forward_diffusion:
             assert isinstance(x_train, torch.Tensor), "x_train must be torch.Tensor for forward diffusion."
-            xt, objective = self.forward_diffusion(y_train.to(x_train.device), x_train)
+            x_train = x_train.to(y_train.device)
+            xt, objective = self.forward_diffusion(y_train, x_train)
             xt = cast(DiffusionData, xt)
             objective = cast(torch.Tensor, objective)
         else:
@@ -163,7 +164,9 @@ class AdversarialDiffusionManager(Manager[M]):
             self.compiled_adv_optimizer.step()
 
         # train generators
-        return super().train_step(xt, objective, forward_diffusion=False)
+        summary = super().train_step(xt, objective, forward_diffusion=False)
+        summary["adv_true_loss"] = float(adv_loss.item())
+        return summary
 
     def use_prediction(self, return_prediction: bool) -> PredictionContext[M]:
         return PredictionContext(self.raw_model, return_prediction)

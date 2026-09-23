@@ -1,7 +1,7 @@
 import torch
 from diffusion.data import DiffusionData
 from torch.nn.parameter import Parameter
-from typing import Any, Generic, Iterator, TypeVar, cast
+from typing import Generic, Iterator, TypeVar, cast
 
 from .bridge import ConditionalBrownianBridgeModule
 from .protocols import RegBBrgOutput

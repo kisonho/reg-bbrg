@@ -44,7 +44,7 @@ def compile(model: RegBBrgModule[G1, G2, D], /, lr: float = 2e-5, adv_lr: float 
     # load discriminator optimizer and loss
     adv_optimizer = torch.optim.Adam(model.discriminator_parameters(), lr=adv_lr)
     adv_loss_fn = cast(dict[str, losses.Loss], {
-        "adv_true": losses.Loss(torch.nn.BCEWithLogitsLoss()),
+        "adv_true": losses.Loss(torch.nn.BCEWithLogitsLoss(), target="d_true"),
     })
 
     # initialize manager
