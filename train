@@ -11,9 +11,10 @@ python -m run \
     --target_modality 3 \
     -b 24 \
     -e 200 \
-    -exp brats2021 \
+    -exp brats2021_continue \
     --use_multi_gpus \
     --show_verbose \
-    --replace_experiment \
+    --ckpt_path "experiments/brats2021.exp/checkpoints/last.model" \
+    # --replace_experiment \
 
 unset CUDA_VISIBLE_DEVICES

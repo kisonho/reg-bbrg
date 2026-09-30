@@ -1,5 +1,5 @@
 """BraTS 2021 subject folders, using the BraTS 2018 modality order."""
-
+import torch
 from monai.data.dataset import CacheDataset, Dataset
 from monai.transforms.compose import Compose
 from monai.transforms.io.dictionary import LoadImaged
@@ -7,6 +7,9 @@ from monai.transforms.spatial.dictionary import Orientationd
 from monai.transforms.croppad.dictionary import RandCropByPosNegLabeld
 from monai.transforms.utility.dictionary import ToTensord
 from pathlib import Path
+
+from reg_bbrg.data import MedicalTranslationDataset
+from reg_bbrg.data.protocols import MedicalTranslationData
 
 Subject = dict[str, list[str] | str]
 
@@ -71,3 +74,18 @@ def load(root_dir: str, img_size: tuple[int, int, int], *, cache_num: int = 10, 
         build_dataset(validation, img_size, cache_num=cache_num, num_workers=num_workers),
         build_dataset(testing, img_size, for_testing=True, cache_num=cache_num, num_workers=num_workers),
     )
+
+
+class BraTS2021TranslationDataset(MedicalTranslationDataset):
+    """Accept the collated list of crops produced by the BraTS 2021 loader."""
+
+    @staticmethod
+    def unpack_data(batch: MedicalTranslationData | list[MedicalTranslationData]) -> tuple[torch.Tensor, torch.Tensor]:
+        if isinstance(batch, dict):
+            return MedicalTranslationDataset.unpack_data(batch)
+        if not batch:
+            raise ValueError("Cannot unpack an empty list of BraTS 2021 crops.")
+
+        # Each crop contains [batch, slices, channels, ...] tensors.
+        pairs = [MedicalTranslationDataset.unpack_data(crop) for crop in batch]
+        return pairs[0] if len(pairs) == 1 else (torch.cat([pair[0] for pair in pairs], dim=0), torch.cat([pair[1] for pair in pairs], dim=0))

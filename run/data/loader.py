@@ -2,8 +2,7 @@ import itk
 from torchmanager_core import devices, os, torch
 
 from reg_bbrg.data import ResizeMode, MedicalTranslationDataset
-from .brats2021 import BraTS2021TranslationDataset
-from .datasets import BraTSModality, ImageType, ISeg, ISegModality, ISegTransformOptions, SupportedMedicalDatasets, load_brats, load_brats2021, load_iseg_transforms, load_ixi, load_prostate
+from .datasets import BraTSModality, BraTS2021TranslationDataset, ImageType, ISeg, ISegModality, ISegTransformOptions, SupportedMedicalDatasets, load_brats, load_brats2021, load_iseg_transforms, load_ixi, load_prostate
 
 torch.multiprocessing.set_sharing_strategy('file_system')
 
