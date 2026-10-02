@@ -81,7 +81,7 @@ class AdversarialDiffusionManager(Manager[M]):
             self.adversarial_loss_fn, use_multi_gpus = devices.data_parallel(self.adversarial_loss_fn, target_devices, parallel_type=ParallelLoss)
         return use_multi_gpus and super().data_parallel(target_devices)
 
-    def forward(self, input: DiffusionData[torch.Tensor], target: torch.Tensor | None = None) -> tuple[RegBBrgOutput | torch.Tensor, torch.Tensor | None]:
+    def forward(self, input: DiffusionData[torch.Tensor], target: torch.Tensor | RegBBrgOutput | None = None) -> tuple[RegBBrgOutput | torch.Tensor, torch.Tensor | None]:
         # forward model
         y = cast(RegBBrgOutput, self.model(input))
         target_false = torch.ones_like(cast(torch.Tensor, y["d_false"]))
@@ -90,9 +90,15 @@ class AdversarialDiffusionManager(Manager[M]):
         y = cast(torch.Tensor, y["target"]) if self.return_prediction else y
 
         # calculate loss
-        target_dict = RegBBrgOutput(target=target, rec=input.condition, d_false=target_false, d_true=None)
+        target_dict = RegBBrgOutput(target=target["target"] if isinstance(target, dict) else target, rec=input.condition, d_false=target_false, d_true=None)
         loss = self.compiled_losses(y, target_dict) if self.loss_fn is not None else None
         return y, loss
+
+    def eval(self, input: Any, target: Any, /) -> dict[str, float]:
+        if isinstance(input, dict) and isinstance(target, dict):
+            # Adversarial labels must match the discriminator output shape.
+            target = {**target, "d_false": torch.ones_like(input["d_false"])}
+        return super().eval(input, target)
 
     def forward_discriminator(self, input: DiffusionData[torch.Tensor], _: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
         """Forward pass for discriminator"""
@@ -117,19 +123,21 @@ class AdversarialDiffusionManager(Manager[M]):
         self.adversarial_loss_fn = self.raw_adv_loss_fn.to(cpu) if self.raw_adv_loss_fn is not None else self.raw_adv_loss_fn
         return super().reset(cpu)
 
-    def test_step(self, x_test: torch.Tensor, y_test: torch.Tensor, *, forward_diffusion: bool = True) -> dict[str, float]:
+    def test_step(self, x_test: torch.Tensor | DiffusionData[torch.Tensor], y_test: torch.Tensor, *, forward_diffusion: bool = True) -> dict[str, float]:
         # forward diffusion
         if forward_diffusion:
+            assert isinstance(x_test, torch.Tensor), "x_test must be torch.Tensor for forward diffusion."
             x_test = x_test.to(y_test.device)
             t = torch.full((x_test.shape[0],), self.time_steps, device=x_test.device)
             xt, objective = self.forward_diffusion(y_test, x_test, t)
             forward_diffusion = False
         else:
+            assert not isinstance(x_test, torch.Tensor), "x_test must be DiffusionData for backward diffusion."
             xt, objective = x_test, y_test
 
         # model testing
-        objective = y_test if self.return_prediction else objective
-        return super().test_step(xt, objective, forward_diffusion=forward_diffusion)
+        target = y_test if self.return_prediction else RegBBrgOutput(target=objective, rec=xt.condition, d_false=None, d_true=None)
+        return super().test_step(xt, target, forward_diffusion=forward_diffusion)
 
     def to(self, device: torch.device) -> None:
         self.adversarial_loss_fn = None if self.adversarial_loss_fn is None else self.adversarial_loss_fn.to(device)
@@ -164,8 +172,11 @@ class AdversarialDiffusionManager(Manager[M]):
             self.compiled_adv_optimizer.step()
 
         # train generators
-        summary = super().train_step(xt, objective, forward_diffusion=False)
-        summary["adv_true_loss"] = float(adv_loss.item())
+        # Carry the source alongside the objective through forward and eval.
+        target = RegBBrgOutput(target=objective, rec=xt.condition, d_false=None, d_true=None)
+        summary = super().train_step(xt, target, forward_diffusion=False)
+        if self.enable_adversarial_learning:
+            summary["adv_true_loss"] = float(adv_loss.item())
         return summary
 
     def use_prediction(self, return_prediction: bool) -> PredictionContext[M]:

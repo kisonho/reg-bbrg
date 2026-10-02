@@ -7,14 +7,14 @@ python -m run \
     brats2021 \
     "~/Documents/Datasets/BraTS 2021/" \
     "~/Documents/Models/reg-bbrg/brats_2021.pth" \
-    --input_modality 1 \
-    --target_modality 3 \
+    --input_modality 1 3 \
+    --target_modality 0 \
     -b 24 \
     -e 200 \
-    -exp brats2021_continue \
+    -exp brats2021 \
     --use_multi_gpus \
     --show_verbose \
-    --ckpt_path "experiments/brats2021.exp/checkpoints/last.model" \
+    # --ckpt_path "experiments/brats2021.exp/checkpoints/last.model" \
     # --replace_experiment \
 
 unset CUDA_VISIBLE_DEVICES

@@ -11,6 +11,7 @@ class Configs(TrainingConfigs):
     dataset: data.SupportedMedicalDatasets
     disable_ema: bool
     disable_random_sampling: bool
+    eval_only: bool
     input_modality: int | list[int]
     model_type: networks.UNetType
     target_modality: int
@@ -34,6 +35,7 @@ class Configs(TrainingConfigs):
         parser.add_argument("--train_split", type=int, default=None, help="Dataset split count (validation count for BraTS 2018; omit for BraTS 2021's Train/Val/Test folders).")
         parser.add_argument("--disable_ema", action="store_true", default=False, help="A flag to disable EMA during training.")
         parser.add_argument("--disable_random_sampling", action="store_true", default=False, help="A flag to disable random sampling and use the full dataset.")
+        parser.add_argument("--eval_only", action="store_true", default=False, help="A flag to only run the evaluation.")
         parser.add_argument_group("Model arguments")
         parser.add_argument("-model", "--model_type", type=networks.UNetType, default=networks.UNetType.A_BRIDGE, choices=list(networks.UNetType), help="The model type to use.")
         parser.add_argument("--with_gen_time_emb", action="store_true", default=False, help="Whether to use generator time embedding.")
@@ -58,7 +60,8 @@ if __name__ == "__main__":
     model = networks.build(input_channels, output_channels, time_steps=training_cfgs.time_steps, model_type=training_cfgs.model_type, with_gen_time_emb=training_cfgs.with_gen_time_emb) if training_cfgs.ckpt_path is None else None
 
     # train
-    train(training_cfgs, training_dataset, model, validation_dataset=validation_dataset if training_cfgs.dataset == data.SupportedMedicalDatasets.BRATS2021 else None)
+    if not training_cfgs.eval_only:
+        train(training_cfgs, training_dataset, model, validation_dataset=validation_dataset if training_cfgs.dataset == data.SupportedMedicalDatasets.BRATS2021 else None)
 
     # evaluate
     result = eval(testing_cfgs, testing_dataset)
