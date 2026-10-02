@@ -79,6 +79,27 @@ testing always uses this full-depth setting. Standard 240x240x155 volumes
 after orientation are expected. Validation is passed to training and uses
 the same sampling policy as training. BraTS 2018 remains available as `brats2018`.
 
+### BraTS 2021: T1w + T2w to FLAIR
+
+Pass both input indices, in channel order, and FLAIR as the target:
+
+```bash
+python -m run brats2021 <data_dir> <output_model_path> --input_modality 1 3 --target_modality 0 -b 24 -e 200 -exp brats2021_t1t2_flair
+```
+
+This reads the existing `Train`, `Val`, and `Test` subject folders. The model
+receives two input channels (T1w, T2w) and predicts one FLAIR channel. The
+existing model builder configures the denoiser for three channels (one bridge
+state plus two conditioning channels), and the reconstruction generator and
+discriminator for the two-channel source. The existing bridge averages source
+channels for its one-channel endpoint while retaining both conditioning channels.
+
+Start a new experiment without a single-input `--ckpt_path`; those checkpoints
+have incompatible channel dimensions. Existing single-input commands remain
+valid. This enables the T1w/T2w-to-FLAIR task with our current BraTS 2021
+preprocessing and model; it does not reproduce YODA's architecture or full
+experimental protocol. Normalization and slice sampling are unchanged.
+
 ### Batch size and epochs
 Use `-b/--batch_size` and `-e/--epochs` to assign the number of batch size and epochs:
 

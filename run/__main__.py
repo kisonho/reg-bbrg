@@ -11,7 +11,7 @@ class Configs(TrainingConfigs):
     dataset: data.SupportedMedicalDatasets
     disable_ema: bool
     disable_random_sampling: bool
-    input_modality: int
+    input_modality: int | list[int]
     model_type: networks.UNetType
     target_modality: int
     train_split: int | None
@@ -19,12 +19,17 @@ class Configs(TrainingConfigs):
 
     def format_arguments(self) -> None:
         super().format_arguments()
+        # Preserve the scalar interface for existing single-input datasets.
+        if isinstance(self.input_modality, list) and len(self.input_modality) == 1:
+            self.input_modality = self.input_modality[0]
+        if isinstance(self.input_modality, list) and self.dataset != data.SupportedMedicalDatasets.BRATS2021:
+            raise ValueError("Multiple --input_modality values are currently supported only for brats2021.")
         assert self.train_split is None or self.train_split >= 0, "The train_split must be a non-negative value if given."
 
     @staticmethod
     def get_arguments(parser: argparse.ArgumentParser = argparse.ArgumentParser()) -> argparse.ArgumentParser:
         parser.add_argument("dataset", type=data.SupportedMedicalDatasets, choices=list(data.SupportedMedicalDatasets), help="The dataset to train.")
-        parser.add_argument("-input", "--input_modality", type=int, default=0, help="The input modality to use.")
+        parser.add_argument("-input", "--input_modality", type=int, nargs="+", default=0, help="Input modality index or indices (BraTS 2021: 1 3 for T1w + T2w).")
         parser.add_argument("-target", "--target_modality", type=int, default=1, help="The target modality to use.")
         parser.add_argument("--train_split", type=int, default=None, help="Dataset split count (validation count for BraTS 2018; omit for BraTS 2021's Train/Val/Test folders).")
         parser.add_argument("--disable_ema", action="store_true", default=False, help="A flag to disable EMA during training.")

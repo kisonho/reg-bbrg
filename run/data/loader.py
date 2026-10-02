@@ -33,13 +33,19 @@ def load_medical(dataset: SupportedMedicalDatasets, root_dir: str, /, batch_size
                 raise ValueError("BraTS 2021 reads the existing Train/Val/Test folders; omit --train_split.")
             img_size = (240, 240, batch_size if random_sampling else 155)
             b = 1 if random_sampling else batch_size
-            input_modality = BraTSModality(input_modality).value
+            if isinstance(input_modality, list):
+                if not input_modality or len(set(input_modality)) != len(input_modality):
+                    raise ValueError("BraTS 2021 input modalities must be nonempty and unique.")
+                input_modality = [BraTSModality(modality).value for modality in input_modality]
+            else:
+                input_modality = BraTSModality(input_modality).value
             target_modality = BraTSModality(target_modality).value
             training_dataset, validation_dataset, testing_dataset = load_brats2021(root_dir, img_size, num_workers=num_workers)
             training_dataset = BraTS2021TranslationDataset(training_dataset, b, img_size, input_modality=input_modality, target_modality=target_modality, device=device, shuffle=True, num_workers=num_workers, use_slices=not random_sampling)
             validation_dataset = BraTS2021TranslationDataset(validation_dataset, b, img_size, input_modality=input_modality, target_modality=target_modality, device=device, shuffle=True, num_workers=num_workers, use_slices=not random_sampling)
             testing_dataset = BraTS2021TranslationDataset(testing_dataset, batch_size, (240, 240, 155), input_modality=input_modality, target_modality=target_modality, device=device, shuffle=False, num_workers=num_workers, use_slices=True)
-            input_channels = output_channels = 1
+            input_channels = len(input_modality) if isinstance(input_modality, list) else 1
+            output_channels = 1
         case SupportedMedicalDatasets.BRATS2018:
             # initialize dataset directories
             training_image_dir = os.path.join(root_dir, "Images.Training")
